@@ -1,3 +1,10 @@
+*.lock
+*._0
+journal-i.ri
+journal1.tex
+journal2.tex
+journals.bib
+
 #################
 ## Eclipse
 #################

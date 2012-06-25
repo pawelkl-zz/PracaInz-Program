@@ -1,0 +1,1 @@
+start %CD%\PracaInz-Program\bin\mongodb\bin\mongod.exe --dbpath %CD%\PracaInz-Program\db

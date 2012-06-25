@@ -1,4 +1,4 @@
-manager = Downloader.new options[:destination]
+# manager = Downloader.new options[:destination]
 #!/usr/bin/env ruby
 require 'rubygems'
 require 'curb'
@@ -6,7 +6,7 @@ require 'yaml'
 require 'json'
 require 'digest/md5'
 # load 'moviehasher.rb'
-load 'c:\dropbox\#code\praca-inz\src\moviehasher.rb'
+load 'd:\dropbox\#code\praca-inz\src\moviehasher.rb'
 
 require 'wx'
 require 'rubygems'
