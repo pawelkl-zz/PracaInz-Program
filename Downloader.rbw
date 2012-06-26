@@ -117,7 +117,7 @@ class Downloader
     # @c.cookiejar = cookiejar
     # @c.cookies=COOKIES # NAME=CONTENTS;
   end
-
+=begin
   def parse_link_info(url)
     data, link, content, hash  =  {}, {}, {}, {}
 
@@ -132,7 +132,7 @@ class Downloader
 
     data[:Link] = link
 
-    content[:"content-lenght"] = @c.downloaded_content_length
+    content[:lenght] = @c.downloaded_content_length
     content[:type] = @c.content_type
     data[:Content] = content
 
@@ -145,15 +145,43 @@ class Downloader
       then hash["bigfile"] = @hash end
 
     @md5 = Digest::MD5.hexdigest(File.read(@save_location))
-    hash["md5"] = @md5
+    hash[:md5] = @md5
 
-    data["Hashes"] = hash
+    data[:Hashes] = hash
 
-    @myjson = JSON.pretty_generate(data)
-    # result = AccessDb.insert @myjson
-    # print @myjson
-    # print result
+    JSON.pretty_generate(data)
   end
+=end
+
+  def parse_link_info(url)
+    json = {}
+
+    json[:link_requested] = url
+    if @c.last_effective_url != url
+      then json[:link_final] = @c.last_effective_url end
+
+    json[:link_filename_requested] =  @filename
+    @final_filename = @c.last_effective_url.split(/\?/).first.split(/\//).last
+    if @final_filename != @filename
+      then json[:link_filename_delivered] = @final_filename end
+
+    json[:link_filetime] = Time.at(@c.file_time).utc.to_s
+
+    json[:content_lenght] = @c.downloaded_content_length
+    json[:content_type] = @c.content_type
+
+    @hash = MovieHasher::compute_hash(@save_location)
+    @hash = MovieHasher::compute_hash(@save_location)
+
+    if !@hash.nil?
+      then json[:hash_bigfile] = @hash end
+
+    json[:hash_md5] = Digest::MD5.hexdigest(File.read(@save_location))
+
+    JSON.pretty_generate(json)
+  end
+
+=begin
 
   def add_link(single_url,cred=nil,ref=nil,cookie=nil)
     link_setup(cred,ref,cookie)
@@ -166,9 +194,10 @@ class Downloader
     # if File.file?(@save_location)
       # then parse_additional_info @save_location end
     # puts "#{@save_location} #{@hash}"
-    parse_link_info single_url
-    File.open(@save_location + ":meta.json","w").write @myjson
+    json = parse_link_info single_url
+    File.open(@save_location + ":meta.json","w").write json
   end
+=end
 
   def add_links(url_array,cred=nil,ref=nil,cookie=nil)
     link_setup(cred,ref,cookie)
@@ -195,7 +224,7 @@ end
 manager = Downloader.new options[:destination]
 # manager.add_links(urls_to_download)
 
-if ARGV.nil? 
+if ARGV.nil?
   manager.add_link(options[:url])
 else
   manager.add_links(ARGV)

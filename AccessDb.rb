@@ -16,12 +16,15 @@ class AccessDb
 		@db   = @conn[dbname]
 		@coll = @db[collection]
 	end
+
 	def upsert_by_id id, json
-		@coll.update({ :_id => id }, json, :upsert => true) # upsert!
+		@coll.update({ :_id => id }, json, :upsert => true)
 	end
+
 	def upsert_by_meta json
-		puts json
 		@coll.update({ :hash => json[:hash] }, json, :upsert => true, :return_key => false)
+		puts json[:Hashes]
+		# @coll.update({ :Hashes => json[:Hashes] }, json, :upsert => true, :return_key => false)
 	end
 	# def insert json
 	# 	# id = @coll.insert(json)
@@ -43,7 +46,7 @@ class AccessDb
 	# 	@coll.find_one
 	# end
 	def find json
-		@coll.find_one(:hash => json[:hash])
+		@coll.find_one(:hash_md5 => json[:hash_md5])
 	end
 end
 
@@ -63,23 +66,44 @@ puts "There are #{@coll.count} records. Here they are:"
 =end
 
 if __FILE__ == $0
-  require 'test/unit'
-  require 'active_support/core_ext/hash'
+	require 'test/unit'
+	require 'active_support/core_ext/hash'
 
-  class AccessDbTest < Test::Unit::TestCase
-  	def setup
-  		@coll = AccessDb.new "meta","meta"
-  	end
-  	def teardown
-  	end
-  	def test_read
-    	json = {:hash => "sara"}
-    	@coll.upsert_by_meta json
-    	find = @coll.find(json)
+	def some_json_with_hash
+		hash, data = {}, {}
+		hash[:md5] = "8e245d9679d31e12"
+		data[:Hashes] = hash
+		JSON.pretty_generate(data)
+	end
+
+	class AccessDbTest < Test::Unit::TestCase
+		def setup
+			@coll = AccessDb.new "meta","meta"
+		end
+
+		def teardown
+		end
+
+
+		def test_read
+			json = {:hash => "sara"}
+			@coll.upsert_by_meta json
+			find = @coll.find(json)
     	# puts find.except!("_id")
     	# puts find.convert_fields_for_query {:hash}
-      assert_equal(json[:hash], find.except!("_id")["hash"])
+    	assert_equal(json[:hash_md5], find.except!("_id")["hash_md5"])
     end
+
+=begin
+
+    def test_read_target
+    	json = some_json_with_hash
+    	# puts json
+			@coll.upsert_by_meta json
+			find = @coll.find(json)
+			assert_equal(json[:Hashes], find.except!("_id")["Hashes"])
+    end
+=end
 
     # def test_compute_hash_large_file
     #   assert_equal("61f7751fc2a72bfb", MovieHasher::compute_hash('dummy.bin'))
