@@ -14,30 +14,6 @@ load 'D:\Dropbox\#code\PracaInz-Program\AccessDb.rb'
 require 'optparse'
 require 'pp'
 
-require 'tk'
-require 'tkextlib/tile'
-
-root = TkRoot.new {title "Feet to Meters"}
-content = Tk::Tile::Frame.new(root) {padding "3 3 12 12"}.grid( :sticky => 'nsew')
-TkGrid.columnconfigure root, 0, :weight => 1; TkGrid.rowconfigure root, 0, :weight => 1
-
-$feet = TkVariable.new; $meters = TkVariable.new
-f = Tk::Tile::Entry.new(content) {width 7; textvariable $feet}.grid( :column => 2, :row => 1, :sticky => 'we' )
-Tk::Tile::Label.new(content) {textvariable $meters}.grid( :column => 2, :row => 2, :sticky => 'we');
-Tk::Tile::Button.new(content) {text 'Calculate'; command {calculate}}.grid( :column => 3, :row => 3, :sticky => 'w')
-
-Tk::Tile::Label.new(content) {text 'feet'}.grid( :column => 3, :row => 1, :sticky => 'w')
-Tk::Tile::Label.new(content) {text 'is equivalent to'}.grid( :column => 1, :row => 2, :sticky => 'e')
-Tk::Tile::Label.new(content) {text 'meters'}.grid( :column => 3, :row => 2, :sticky => 'w')
-
-TkWinfo.children(content).each {|w| TkGrid.configure w, :padx => 5, :pady => 5}
-f.focus
-root.bind("Return") {calculate}
-
-
-
-
-
 STDOUT.sync = true; exit_requested = false; Kernel.trap( "INT" ) { exit_requested = true }
 
 options = {}
@@ -96,7 +72,7 @@ if __FILE__ == $0; pp "Options:", options; pp "ARGV:", ARGV end
     def initialize()
       super(nil, -1, 'My Frame Title')
       @my_panel = Panel.new(self)
-      @my_label = StaticText.new(@my_panel, -1, 'My Label Text', DEFAULT_POSITION, DEFAULT_SIZE, ALIGN_CENTER)
+      @my_label = StaticText.new(@mby_panel, -1, 'My Label Text', DEFAULT_POSITION, DEFAULT_SIZE, ALIGN_CENTER)
       @my_textbox = TextCtrl.new(@my_panel, -1, 'Default Textbox Value')
       @my_combo = ComboBox.new(@my_panel, -1, 'Default Combo Text',   DEFAULT_POSITION, DEFAULT_SIZE, ['Item 1', 'Item 2', 'Item 3'])
       @my_button = Button.new(@my_panel, -1, 'My Button Text')
@@ -108,20 +84,17 @@ if __FILE__ == $0; pp "Options:", options; pp "ARGV:", ARGV end
   exit!
 =end
 
-
 class Downloader
   def initialize(directory)
     @PASS=nil
     @COOKIE=nil
     @filename=nil
     @full_file_location = nil
-    @myjson=nil
     @target_dir = directory
     File.exists? @target_dir # File.directory? @target_dir
     @c = Curl::Easy.new
     curl_setup
-    AccessDb.connect
-    AccessDb.setup_collections
+    @mongo = AccessDb.new "meta","meta"
   end
 
   def curl_setup
@@ -148,22 +121,22 @@ class Downloader
   def parse_link_info(url)
     data, link, content, hash  =  {}, {}, {}, {}
 
-    link["requested"] = url
+    link[:link_requested] = url
     if @c.last_effective_url != url
-      then link["final"] = @c.last_effective_url end
+      then link[:final] = @c.last_effective_url end
 
-    link["requested-filename"] = @filename
+    link[:requested_filename] =  @filename
     @final_filename = @c.last_effective_url.split(/\?/).first.split(/\//).last
     if @final_filename != @filename
-      then link["final-filename"] = @final_filename end
+      then link[:final_filename] = @final_filename end
 
-    data["Link"] = link
+    data[:Link] = link
 
-    content["lenght"] = @c.downloaded_content_length
-    content["type"] = @c.content_type
-    data["Content"] = content
+    content[:"content-lenght"] = @c.downloaded_content_length
+    content[:type] = @c.content_type
+    data[:Content] = content
 
-    data["filetime"] = Time.at(@c.file_time).utc.to_s
+    data[:filetime] = Time.at(@c.file_time).utc.to_s
 
     @hash = MovieHasher::compute_hash(@save_location)
     @hash = MovieHasher::compute_hash(@save_location)
@@ -177,10 +150,9 @@ class Downloader
     data["Hashes"] = hash
 
     @myjson = JSON.pretty_generate(data)
-    result = AccessDb.insert @myjson
-    print @myjson
-    print result
-
+    # result = AccessDb.insert @myjson
+    # print @myjson
+    # print result
   end
 
   def add_link(single_url,cred=nil,ref=nil,cookie=nil)
@@ -210,9 +182,12 @@ class Downloader
       # if File.file?(@save_location)
         # then parse_additional_info @save_location end
       # puts "#{@save_location} #{@hash}"
-      parse_link_info single_url
-      id = update_db
-      File.open(@save_location + ":meta.json","w").write @myjson
+
+      json = parse_link_info single_url
+      puts json
+      id = @mongo.upsert_by_meta json
+      json["_id"] = id
+      File.open(@save_location + :"meta.json","w").write json
     end
   end
 end
@@ -253,5 +228,3 @@ if __FILE__ == $0
   ]
   manager.add_links(urls_to_download)
 end
-
-Tk.mainloop
