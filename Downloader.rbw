@@ -117,41 +117,6 @@ class Downloader
     # @c.cookiejar = cookiejar
     # @c.cookies=COOKIES # NAME=CONTENTS;
   end
-=begin
-  def parse_link_info(url)
-    data, link, content, hash  =  {}, {}, {}, {}
-
-    link[:link_requested] = url
-    if @c.last_effective_url != url
-      then link[:final] = @c.last_effective_url end
-
-    link[:requested_filename] =  @filename
-    @final_filename = @c.last_effective_url.split(/\?/).first.split(/\//).last
-    if @final_filename != @filename
-      then link[:final_filename] = @final_filename end
-
-    data[:Link] = link
-
-    content[:lenght] = @c.downloaded_content_length
-    content[:type] = @c.content_type
-    data[:Content] = content
-
-    data[:filetime] = Time.at(@c.file_time).utc.to_s
-
-    @hash = MovieHasher::compute_hash(@save_location)
-    @hash = MovieHasher::compute_hash(@save_location)
-
-    if !@hash.nil?
-      then hash["bigfile"] = @hash end
-
-    @md5 = Digest::MD5.hexdigest(File.read(@save_location))
-    hash[:md5] = @md5
-
-    data[:Hashes] = hash
-
-    JSON.pretty_generate(data)
-  end
-=end
 
   def parse_link_info(url)
     json = {}
@@ -181,40 +146,20 @@ class Downloader
     JSON.pretty_generate(json)
   end
 
-=begin
-
-  def add_link(single_url,cred=nil,ref=nil,cookie=nil)
-    link_setup(cred,ref,cookie)
-    @c.url=single_url
-    @filename = single_url.split(/\?/).first.split(/\//).last
-    puts @filename
-    @save_location = @target_dir + '\\' + (options[:file].nil? ? @filename : options[:file])
-    @c.perform
-    File.open(@save_location,"wb").write @c.body_str
-    # if File.file?(@save_location)
-      # then parse_additional_info @save_location end
-    # puts "#{@save_location} #{@hash}"
-    json = parse_link_info single_url
-    File.open(@save_location + ":meta.json","w").write json
-  end
-=end
-
   def add_links(url_array,cred=nil,ref=nil,cookie=nil)
     link_setup(cred,ref,cookie)
     url_array.each do |single_url|
       @c.url=single_url
       @filename = single_url.split(/\?/).first.split(/\//).last
       @save_location = @target_dir + '\\' + @filename
-      puts @save_location
+      # puts @save_location
       @c.perform
       File.open(@save_location,"wb").write @c.body_str
-      # if File.file?(@save_location)
-        # then parse_additional_info @save_location end
-      # puts "#{@save_location} #{@hash}"
 
       json = parse_link_info single_url
-      puts json
+      # puts json
       id = @mongo.upsert_by_meta json
+      puts id
       json["_id"] = id
       File.open(@save_location + :"meta.json","w").write json
     end
@@ -222,23 +167,12 @@ class Downloader
 end
 
 manager = Downloader.new options[:destination]
-# manager.add_links(urls_to_download)
 
 if ARGV.nil?
   manager.add_link(options[:url])
 else
   manager.add_links(ARGV)
 end
-
-=begin
-  open('file.txt:stream1', 'w') do |f|
-       f.puts('Your Text Here')
-  end
-
-  stream_text = open('file.txt:stream1').read
-=end
-
-# sleep(3)
 
 if __FILE__ == $0
   urls_to_download = [

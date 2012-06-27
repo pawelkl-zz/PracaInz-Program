@@ -4,12 +4,6 @@ require 'json'
 
 class AccessDb
 	def initialize dbname, collection #, username, password
-		# @db = Connection.new.db('meta');
-		# @coll = db.collection('meta')
-
-		# @conn = new Mongo(:pool_size => 5, :timeout => 5)
-		# @db = conn.getDb dbname
-		# db.auth username, password
 		@dbname = dbname
 		@collection = collection
 		@conn = Mongo::Connection.new
@@ -22,59 +16,46 @@ class AccessDb
 	end
 
 	def upsert_by_meta json
-		@coll.update({ :hash => json[:hash] }, json, :upsert => true, :return_key => false)
-		puts json[:Hashes]
-		# @coll.update({ :Hashes => json[:Hashes] }, json, :upsert => true, :return_key => false)
+		# print json
+		@coll.update({ :hash_md5 => json[:hash_md5] }, json, :upsert => true)
 	end
-	# def insert json
-	# 	# id = @coll.insert(json)
-	# 	# TODO:
-	# 	# odczytanie z mety hasha i probowanie znalezienie w bazie tego elementu i dopiero wtedy dodanie poprzez uzycie upserta (3 arg true)
-	# 	# this = @coll.find({ :hash => json[:hash] })
-	# 	# update({ :hash => hash}, @collection, true) # upsert!
-	# 	update_by_id({ :hash => json[:hash]}, @collection, true) # upsert!
-	# 	# @coll.update({ :_id => id }, '$set' => { db_id => id })
-	# end
-	def delete id
-		@coll.remove({ :_id => id})
+
+	def remove json
+		if json[:_id].nil?
+			then @coll.remove({ :hash_md5 => json[:hash_md5]})
+		else
+			@coll.remove({:_id => json[:id]})
+		end
 	end
-	def add id, param, value
-		@coll.update({ :_id => id }, '$set' => { param => value })
-		# @coll.find_and_modify(:_ibd => id)
+
+	def add_info json, param, value
+		if json[:_id].nil?
+			then @coll.update({ :hash_md5 => json[:hash_md5] }, '$set' => { param => value })
+		else
+			@coll.update({ :_id => json[:id] }, '$set' => { param => value })
+		end
 	end
-	# def fetch
-	# 	@coll.find_one
-	# end
+
+	def remove_info json, param
+		if json[:_id].nil?
+			then @coll.update({ :hash_md5 => json[:hash_md5] }, '$set' => { param => nil })
+		else
+			@coll.update({ :_id => json[:id] }, '$set' => { param => nil})
+		end
+	end
+
 	def find json
 		@coll.find_one(:hash_md5 => json[:hash_md5])
 	end
+
+	def update query, update
+		@coll.find_and_modify(:query => query, :update => update)
+	end
 end
-
-
-=begin
-@conn = Mongo::Connection.new
-@db   = @conn['sample-db']
-@coll = @db['test']
-
-@coll.remove
-3.times do |i|
-  @coll.insert({'a' => i+1})
-end
-
-puts "There are #{@coll.count} records. Here they are:"
-@coll.find.each { |doc| puts doc.inspect }
-=end
 
 if __FILE__ == $0
 	require 'test/unit'
 	require 'active_support/core_ext/hash'
-
-	def some_json_with_hash
-		hash, data = {}, {}
-		hash[:md5] = "8e245d9679d31e12"
-		data[:Hashes] = hash
-		JSON.pretty_generate(data)
-	end
 
 	class AccessDbTest < Test::Unit::TestCase
 		def setup
@@ -82,35 +63,34 @@ if __FILE__ == $0
 		end
 
 		def teardown
+			@coll.remove({:hash_md5 => [:sara,:ania]})
 		end
 
-
 		def test_read
-			json = {:hash => "sara"}
-			@coll.upsert_by_meta json
-			find = @coll.find(json)
-    	# puts find.except!("_id")
-    	# puts find.convert_fields_for_query {:hash}
+			json = {:hash_md5 => :sara}
+			id = @coll.upsert_by_meta json
+    	# puts id
+    	find = @coll.find(json)
     	assert_equal(json[:hash_md5], find.except!("_id")["hash_md5"])
+    	assert_equal(82,id)
     end
 
-=begin
-
-    def test_read_target
-    	json = some_json_with_hash
-    	# puts json
-			@coll.upsert_by_meta json
-			find = @coll.find(json)
-			assert_equal(json[:Hashes], find.except!("_id")["Hashes"])
+    def test_added_info
+    	json = {:hash_md5 => :ania}
+    	id = @coll.upsert_by_meta json
+    	@coll.add_info(json, :stan, :zajeta)
+    	find = @coll.find(json)
+    	assert_equal(json[:stan], find[:stan])
+    	@coll.remove_info(json, :stan)
+    	assert_equal(json[:stan], nil)
     end
-=end
 
-    # def test_compute_hash_large_file
-    #   assert_equal("61f7751fc2a72bfb", MovieHasher::compute_hash('dummy.bin'))
-    # end
-
-    # def test_jpeg
-    #   assert_equal("bed5a0ecf41d0d96", MovieHasher::compute_hash('2638909.jpg')) # => bed5a0ecf41d0d96, zle 8228bb57b5b72510
-    # end
+    def test_delete
+    	json = {:hash_md5 => :beata}
+    	id = @coll.upsert_by_meta json
+    	@coll.remove({:hash_md5 => :beata})
+    	find = @coll.find(json)
+    	assert_equal(nil, find)
+    end
   end
 end
