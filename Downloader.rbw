@@ -1,16 +1,13 @@
 #!/usr/bin/env ruby
-require 'rubygems'
+# require 'rubygems'
 require 'curb'
 require 'yaml'
 require 'json'
 require 'digest/md5'
-# load 'moviehasher.rb'
-load 'D:\Dropbox\#code\PracaInz-Program\MovieHasher.rb'
+load 'D:\Dropbox\#code\PracaInz-Program\MovieHasher.rb' # load 'moviehasher.rb'
 load 'D:\Dropbox\#code\PracaInz-Program\AccessDb.rb'
-
 # require 'wx'
 # include Wx
-
 require 'optparse'
 require 'pp'
 
