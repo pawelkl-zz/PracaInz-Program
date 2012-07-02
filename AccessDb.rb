@@ -1,6 +1,7 @@
 # require 'rubygems'
 require 'mongo'
 require 'json'
+require 'active_support'
 
 class AccessDb
   def initialize dbname, collection #, username, password
@@ -16,8 +17,8 @@ class AccessDb
   end
 
   def upsert_by_meta json
-    # print json
-    @coll.update({ "hash_md5" => json[:hash_md5] }, json, :upsert => true)
+    print json
+    @coll.update({ :hash_md5 => json["hash_md5"] }, json, :upsert => true)
   end
 
   def remove json
@@ -70,7 +71,7 @@ if __FILE__ == $0
 
     def test_read
       json = {:hash_md5 => :sara}
-      id = @coll.upsert_by_meta json
+      @coll.upsert_by_meta json
       # puts id
       find = @coll.find json
       # assert_equal(json[:hash_md5], find.except!("_id")["hash_md5"])
@@ -81,7 +82,7 @@ if __FILE__ == $0
 
     def test_read_with_hash
       json = {:hash_md5 => :lolcats}
-      id = @coll.upsert_by_meta json
+      @coll.upsert_by_meta json
       find = @coll.find json
       # json[:_id] = id
       assert_equal json, find, "retrieved json file isn't exactly the same as input json"

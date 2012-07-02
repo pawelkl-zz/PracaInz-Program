@@ -1,6 +1,7 @@
 require 'optparse'
 require 'pp'
 require 'find'
+require 'json'
 
 STDOUT.sync = true; exit_requested = false; Kernel.trap( "INT" ) { exit_requested = true }
 
@@ -22,27 +23,36 @@ end
 
 optparse.parse!
 
+
+
+class MetaImport
+  attr_reader :path
+  def initialize(path)
+    @path = path
+  end
+  # def ==()
+  # end
+  def import
+    Find.find(@path) do |f|
+      target =  f + :":meta.json".to_s
+      if File.exists? target; pp target end
+      # puts target
+      data = File.open(target).read
+      puts JSON.parse(data)
+      # puts JSON.pretty_generate(json)
+      # puts json[:link_filename_requested]
+      json
+    end
+  end
+end
+
 if __FILE__ == $0
   options[:directory] = 'c:/temp'
   pp "Options:", options
   pp "ARGV:", ARGV
 end
 
-class MetaImport
-  attr_reader
-  def initalize
-  end
-  def import
-    Find.find(options[:directory]) do |f|
-      target =  f + :":meta.json".to_s
-      if File.exists? target; pp target end
-      # puts target
-      json =  File.open(target).read
-      puts JSON.pretty_generate(json)
-      json
-    end
-  end
-end
+MetaImport.new(options[:directory]).import
 
 =begin
 if __FILE__ == $0

@@ -2,7 +2,8 @@
 # require 'rubygems'
 require 'curb'
 require 'yaml'
-require 'json'
+# require 'json'
+require 'json/pure'
 require 'digest/md5'
 load 'D:\Dropbox\#code\PracaInz-Program\MovieHasher.rb' # load 'moviehasher.rb'
 load 'D:\Dropbox\#code\PracaInz-Program\AccessDb.rb'
@@ -10,6 +11,7 @@ load 'D:\Dropbox\#code\PracaInz-Program\AccessDb.rb'
 # include Wx
 require 'optparse'
 require 'pp'
+# require 'active_support'
 
 STDOUT.sync = true; exit_requested = false; Kernel.trap( "INT" ) { exit_requested = true }
 
@@ -82,7 +84,7 @@ if __FILE__ == $0; pp "Options:", options; pp "ARGV:", ARGV end
 =end
 
 class Downloader
-  def initialize(directory)
+  def initialize(directory,db,collection)
     @PASS=nil
     @COOKIE=nil
     @filename=nil
@@ -91,7 +93,7 @@ class Downloader
     File.exists? @target_dir # File.directory? @target_dir
     @c = Curl::Easy.new
     curl_setup
-    @mongo = AccessDb.new "meta","meta"
+    @mongo = AccessDb.new db, collection
   end
 
   def curl_setup
@@ -117,6 +119,7 @@ class Downloader
 
   def parse_link_info(url)
     json = {}
+    # json = ActiveSupport::HashWithIndifferentAccess.new
 
     json[:link_requested] = url
     if @c.last_effective_url != url
@@ -140,7 +143,7 @@ class Downloader
 
     json[:hash_md5] = Digest::MD5.hexdigest(File.read(@save_location))
     # puts JSON.pretty_generate(json)
-    json
+    JSON.generate json
   end
 
   def add_links(url_array,cred=nil,ref=nil,cookie=nil)
@@ -155,10 +158,11 @@ class Downloader
 
       json = parse_link_info single_url
       # puts json
-      id = @mongo.upsert_by_meta json
+      # id = 
+        @mongo.upsert_by_meta json
       # puts id
       # json["_id"] = id
-      puts @save_location
+      # puts @save_location
       File.open(@save_location + :":meta.json".to_s,"w").write json
     end
   end
@@ -166,7 +170,7 @@ end
 
 if __FILE__ == $0; options[:destination] = 'c:/temp' end
 
-manager = Downloader.new options[:destination]
+manager = Downloader.new options[:destination],"meta","meta"
 
 if ARGV.nil?
   manager.add_link(options[:url])
