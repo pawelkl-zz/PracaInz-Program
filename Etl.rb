@@ -1,5 +1,6 @@
 require 'optparse'
 require 'pp'
+require 'find'
 
 STDOUT.sync = true; exit_requested = false; Kernel.trap( "INT" ) { exit_requested = true }
 
@@ -22,20 +23,23 @@ end
 optparse.parse!
 
 if __FILE__ == $0
-	options[:directory] = 'c:\test'
+  options[:directory] = 'c:/foobar2000'
+  pp "Options:", options
+  pp "ARGV:", ARGV
 end
 
-if __FILE__ == $0; pp "Options:", options; pp "ARGV:", ARGV end
+# search_dir = options[:directory].to_s + '\**\*'
+# puts search_dir
 
-search_dir = options[:directory].to_s + '\**\*'
-puts search_dir
-
-# Dir[options[:directory]].each{|file| 
+# Dir[options[:directory]].each{|file|
 # 	# do  something
 # 	# sprawdzenie czy plik posiada metadane
-# 	if 
+# 	if
 # 		then
 	# end
 # }
 
- 
+Find.find(options[:directory]) do |f| 
+  File.exists? f:":meta.json"
+end
+

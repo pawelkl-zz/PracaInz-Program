@@ -17,7 +17,7 @@ class AccessDb
 
 	def upsert_by_meta json
 		# print json
-		@coll.update({ :hash_md5 => json[:hash_md5] }, json, :upsert => true)
+		@coll.update({ "hash_md5" => json[:hash_md5] }, json, :upsert => true)
 	end
 
 	def remove json
@@ -45,7 +45,7 @@ class AccessDb
 	end
 
 	def find json
-		@coll.find_one(:hash_md5 => json[:hash_md5])
+		@coll.find_one({:hash_md5 => json[:hash_md5]},{:fields => {:_id=>0}})
 	end
 
 	def update query, update
@@ -70,14 +70,24 @@ if __FILE__ == $0
 			json = {:hash_md5 => :sara}
 			id = @coll.upsert_by_meta json
     	# puts id
-    	find = @coll.find(json)
-    	assert_equal(json[:hash_md5], find.except!("_id")["hash_md5"])
-    	assert_equal(82,id)
+    	find = @coll.find json
+    	# assert_equal(json[:hash_md5], find.except!("_id")["hash_md5"])
+    	assert_equal json[:hash_md5], find["hash_md5"], "json file didn't match input file"
+    	#find.except!("_id")["hash_md5"])
+    	# assert_equal(82,id)
+    end
+
+    def test_read_with_hash
+    	json = {:hash_md5 => :lolcats}
+    	id = @coll.upsert_by_meta json
+    	find = @coll.find json
+    	# json[:_id] = id
+    	assert_equal json, find, "retrieved json file isn't exactly the same as input json"
     end
 
     def test_added_info
     	json = {:hash_md5 => :ania}
-    	id = @coll.upsert_by_meta json
+    	@coll.upsert_by_meta json
     	@coll.add_info(json, :stan, :zajeta)
     	find = @coll.find(json)
     	assert_equal(json[:stan], find[:stan])
@@ -87,7 +97,7 @@ if __FILE__ == $0
 
     def test_delete
     	json = {:hash_md5 => :beata}
-    	id = @coll.upsert_by_meta json
+    	@coll.upsert_by_meta json
     	@coll.remove({:hash_md5 => :beata})
     	find = @coll.find(json)
     	assert_equal(nil, find)
