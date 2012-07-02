@@ -23,7 +23,7 @@ end
 optparse.parse!
 
 if __FILE__ == $0
-  options[:directory] = 'c:/foobar2000'
+  options[:directory] = 'c:/temp'
   pp "Options:", options
   pp "ARGV:", ARGV
 end
@@ -39,7 +39,27 @@ end
 	# end
 # }
 
-Find.find(options[:directory]) do |f| 
-  File.exists? f:":meta.json"
+Find.find(options[:directory]) do |f|
+  target =  f + :":meta.json".to_s
+  if File.exists? target; pp target end
+  # puts target
+  puts File.open(target,"r").read
 end
 
+=begin
+if __FILE__ == $0
+  require 'test/unit'
+  require 'active_support/core_ext/hash'
+
+  class EtlTest < Test::Unit::TestCase
+    def setup
+      @coll = AccessDb.new "meta","meta"
+    end
+
+    def teardown
+      @coll.remove({:hash_md5 => [:sara,:ania]})
+    end
+
+  end
+end
+=end

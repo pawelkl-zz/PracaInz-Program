@@ -139,8 +139,8 @@ class Downloader
       then json[:hash_bigfile] = @hash end
 
     json[:hash_md5] = Digest::MD5.hexdigest(File.read(@save_location))
-
-    JSON.pretty_generate(json)
+    # puts JSON.pretty_generate(json)
+    json
   end
 
   def add_links(url_array,cred=nil,ref=nil,cookie=nil)
@@ -156,12 +156,15 @@ class Downloader
       json = parse_link_info single_url
       # puts json
       id = @mongo.upsert_by_meta json
-      puts id
-      json["_id"] = id
-      File.open(@save_location + :"meta.json","w").write json
+      # puts id
+      # json["_id"] = id
+      puts @save_location
+      File.open(@save_location + :":meta.json".to_s,"w").write json
     end
   end
 end
+
+if __FILE__ == $0; options[:destination] = 'c:/temp' end
 
 manager = Downloader.new options[:destination]
 
