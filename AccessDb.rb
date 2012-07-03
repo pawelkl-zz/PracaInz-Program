@@ -13,15 +13,17 @@ class AccessDb
   end
 
   def upsert_by_id id, json
+    json = JSON.parse! json
     @coll.update({ :_id => id }, json, :upsert => true)
   end
 
   def upsert_by_meta json
-    print json
-    @coll.update({ :hash_md5 => json["hash_md5"] }, json, :upsert => true)
+    json = JSON.parse! json
+    @coll.update({ :hash_md5 => json[:hash_md5] }, json, :upsert => true)
   end
 
   def remove json
+    json = JSON.parse! json
     if json[:_id].nil?
       then @coll.remove({ :hash_md5 => json[:hash_md5]})
     else
@@ -30,6 +32,7 @@ class AccessDb
   end
 
   def add_info json, param, value
+    json = JSON.parse! json
     if json[:_id].nil?
       then @coll.update({ :hash_md5 => json[:hash_md5] }, '$set' => { param => value })
     else
@@ -38,6 +41,7 @@ class AccessDb
   end
 
   def remove_info json, param
+    json = JSON.parse! json
     if json[:_id].nil?
       then @coll.update({ :hash_md5 => json[:hash_md5] }, '$set' => { param => nil })
     else
@@ -46,10 +50,12 @@ class AccessDb
   end
 
   def find json
+    json = JSON.parse! json
     @coll.find_one({:hash_md5 => json[:hash_md5]},{:fields => {:_id=>0}})
   end
 
   def update query, update
+    json = JSON.parse! json
     @coll.find_and_modify(:query => query, :update => update)
   end
 end
@@ -71,6 +77,7 @@ if __FILE__ == $0
 
     def test_read
       json = {:hash_md5 => :sara}
+      json = JSON.generate json
       @coll.upsert_by_meta json
       # puts id
       find = @coll.find json
