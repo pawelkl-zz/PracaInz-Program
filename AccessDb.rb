@@ -1,7 +1,7 @@
 # require 'rubygems'
 require 'mongo'
 require 'json'
-require 'active_support'
+# require 'active_support'
 
 class AccessDb
   def initialize dbname, collection #, username, password

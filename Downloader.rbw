@@ -13,11 +13,19 @@ require 'optparse'
 require 'pp'
 # require 'active_support'
 
-STDOUT.sync = true; exit_requested = false; Kernel.trap( "INT" ) { exit_requested = true }
+class Download
+  include DataMapper::Resource
+  property :id, Serial
+  property :url, String, :required => true, :length => 1024
+end
+
+STDOUT.sync = true;
+exit_requested = false;
+Kernel.trap( "INT" ) { exit_requested = true }
 
 options = {}
 
-optparse = OptionParser.new do|opts|
+optparse = OptionParser.new do |opts|
   opts.banner = "Usage: Downloader.rbw [options] url1 url2 ..."
 
   opts.on( '-h', '--help', 'Display this screen' ) do
@@ -158,7 +166,7 @@ class Downloader
 
       json = parse_link_info single_url
       # puts json
-      # id = 
+      # id =
         @mongo.upsert_by_meta json
       # puts id
       # json["_id"] = id
