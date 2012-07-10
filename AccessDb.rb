@@ -20,7 +20,11 @@ class AccessDb
 
   def upsert_by_meta json
     # json = JSON.parse! json
-    @coll.update({ "hash_md5" => json["hash_md5"] }, json, :upsert => true)
+    @coll.update(
+      { "hash_md5" => json["hash_md5"] },
+      json,
+      :upsert => true
+      )
   end
 
   def remove json

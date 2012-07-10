@@ -11,17 +11,18 @@ load 'D:\Dropbox\#code\PracaInz-Program\AccessDb.rb'
 # include Wx
 require 'optparse'
 require 'pp'
+require 'mash'
 # require 'active_support'
 
-class Download
-  include DataMapper::Resource
-  property :id, Serial
-  property :url, String, :required => true, :length => 1024
-end
+# class Download
+#   include DataMapper::Resource
+#   property :id, Serial
+#   property :url, String, :required => true, :length => 1024
+# end
 
-STDOUT.sync = true;
-exit_requested = false;
-Kernel.trap( "INT" ) { exit_requested = true }
+# STDOUT.sync = true;
+# exit_requested = false;
+# Kernel.trap( "INT" ) { exit_requested = true }
 
 options = {}
 
@@ -34,39 +35,59 @@ optparse = OptionParser.new do |opts|
   end
 
   options[:url] = []
-    opts.on( '-u', '--url a,b,c', Array, "List of urls" ) do|u|
+    opts.on( '-u', '--url a,b,c', Array, "List of urls" ) do |u|
     options[:url] = u
   end
 
   options[:cookie] = ""
-    opts.on( '-c', '--cookie COOKIE', "" ) do|c|
+    opts.on( '-c', '--cookie COOKIE', "" ) do |c|
     options[:cookie] = c
   end
 
   options[:cred] = ""
-    opts.on( '-t', '--cred USER:PASSWORD', "" ) do|c|
+    opts.on( '-t', '--cred USER:PASSWORD', "" ) do |c|
     options[:cred] = c
   end
 
   options[:ref] = ""
-    opts.on( '-r', '--ref REF-LINK', "" ) do|c|
+    opts.on( '-r', '--ref REF-LINK', "" ) do |c|
     options[:ref] = c
   end
 
   options[:file] = ""
-    opts.on( '-f', '--file FILE', "" ) do|c|
+    opts.on( '-f', '--file FILE', "" ) do |c|
     options[:file] = c
   end
 
   options[:destination] = ""
-    opts.on( '-d', '--destination DESTINATION-FOLDER', "" ) do|c|
+    opts.on( '-d', '--destination DESTINATION-FOLDER', "" ) do |c|
     options[:destination] = c
   end
 end
 
 optparse.parse!
 
-if __FILE__ == $0; pp "Options:", options; pp "ARGV:", ARGV end
+if __FILE__ == $0
+  puts "Options: #{options}"
+  puts "ARGV: #{ARGV}"
+    urls_to_download = [
+    'http://www.shapings.com/images/detailed/2/CVNESPT.jpg',
+    # 'http://www.opensubtitles.org/addons/avi/breakdance.avi', # 8e245d9679d31e12
+    # # 'http://www.opensubtitles.org/addons/avi/dummy.rar', # 61f7751fc2a72bfb
+    'http://static.skynetblogs.be/media/163667/1714742799.2.jpg',
+    # 'http://imgur.com/NMHpw.jpg',
+    # 'http://i.imgur.com/USdtc.jpg',
+    # 'http://i.imgur.com/Dexpm.jpg',
+    # 'http://www.shapings.com/images/detailed/2/CVNESPT.jpg',
+    # 'http://static3.blip.pl/user_generated/update_pictures/2639011.jpg',
+    # 'http://3.asset.soup.io/asset/3187/8131_3a06.jpeg',
+    # 'http://e.asset.soup.io/asset/3182/1470_9f47_500.jpeg',
+    'http://static3.blip.pl/user_generated/update_pictures/2638909.jpg'
+  ]
+  options[:destination] = 'c:/temp'
+  # ARGV= urls_to_download
+  options[:url] = urls_to_download
+end
 
 =begin GUI
   class MinimalApp < App
@@ -118,8 +139,8 @@ class Downloader
     # @c.username = user
     # @c.password = pass
     @c.userpwd = cred
-    @c.autoreferer=true
-    @c.connect_timeout=15
+    @c.autoreferer = true
+    @c.connect_timeout = 15
     @c.cookiefile = cookie
     # @c.cookiejar = cookiejar
     # @c.cookies=COOKIES # NAME=CONTENTS;
@@ -150,8 +171,8 @@ class Downloader
       then json[:hash_bigfile] = @hash end
 
     json[:hash_md5] = Digest::MD5.hexdigest(File.read(@save_location))
-    # puts JSON.pretty_generate(json)
-    JSON.generate json
+    # JSON.generate json
+    json
   end
 
   def add_links(url_array,cred=nil,ref=nil,cookie=nil)
@@ -160,46 +181,15 @@ class Downloader
       @c.url=single_url
       @filename = single_url.split(/\?/).first.split(/\//).last
       @save_location = @target_dir + '\\' + @filename
-      # puts @save_location
       @c.perform
       File.open(@save_location,"wb").write @c.body_str
 
       json = parse_link_info single_url
-      # puts json
-      # id =
-        @mongo.upsert_by_meta json
-      # puts id
-      # json["_id"] = id
-      # puts @save_location
+      @mongo.upsert_by_meta json
       File.open(@save_location + :":meta.json".to_s,"w").write json
     end
   end
 end
 
-if __FILE__ == $0; options[:destination] = 'c:/temp' end
-
 manager = Downloader.new options[:destination],"meta","meta"
-
-if ARGV.nil?
-  manager.add_link(options[:url])
-else
-  manager.add_links(ARGV)
-end
-
-if __FILE__ == $0
-  urls_to_download = [
-    'http://www.shapings.com/images/detailed/2/CVNESPT.jpg',
-    # 'http://www.opensubtitles.org/addons/avi/breakdance.avi', # 8e245d9679d31e12
-    # # 'http://www.opensubtitles.org/addons/avi/dummy.rar', # 61f7751fc2a72bfb
-    'http://static.skynetblogs.be/media/163667/1714742799.2.jpg',
-    # 'http://imgur.com/NMHpw.jpg',
-    # 'http://i.imgur.com/USdtc.jpg',
-    # 'http://i.imgur.com/Dexpm.jpg',
-    # 'http://www.shapings.com/images/detailed/2/CVNESPT.jpg',
-    # 'http://static3.blip.pl/user_generated/update_pictures/2639011.jpg',
-    # 'http://3.asset.soup.io/asset/3187/8131_3a06.jpeg',
-    # 'http://e.asset.soup.io/asset/3182/1470_9f47_500.jpeg',
-    'http://static3.blip.pl/user_generated/update_pictures/2638909.jpg'
-  ]
-  manager.add_links(urls_to_download)
-end
+manager.add_links options[:url].nil? ? ARGV : options[:url]

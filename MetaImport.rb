@@ -2,11 +2,13 @@ require 'optparse'
 require 'pp'
 require 'find'
 require 'json'
+load 'D:\Dropbox\#code\PracaInz-Program\AccessDb.rb'
 
-STDOUT.sync = true; exit_requested = false; Kernel.trap( "INT" ) { exit_requested = true }
+# STDOUT.sync = true;
+# exit_requested = false;
+# Kernel.trap( "INT" ) { exit_requested = true }
 
 options = {}
-
 optparse = OptionParser.new do|opts|
   opts.banner = "Usage: Downloader.rbw [options] url1 url2 ..."
 
@@ -20,28 +22,33 @@ optparse = OptionParser.new do|opts|
     options[:directory] = u
   end
 end
-
 optparse.parse!
-
-
 
 class MetaImport
   attr_reader :path
-  def initialize(path)
+  def initialize(path, db, collection)
     @path = path
+    @mongo = AccessDb.new db, collection
   end
   # def ==()
   # end
   def import
     Find.find(@path) do |f|
       target =  f + :":meta.json".to_s
-      if File.exists? target; pp target end
-      # puts target
-      data = File.open(target).read
-      puts JSON.parse(data)
-      # puts JSON.pretty_generate(json)
-      # puts json[:link_filename_requested]
-      json
+      if File.exists? target
+        begin
+          file = File.open(target)
+          data = file.read
+          json = JSON.parse(data)
+          pp target, json
+          @mongo.upsert_by_meta json
+          # data
+        rescue
+          puts "Error! \"#{target}\" have broken json metadocument - ignoring"
+        ensure
+          file.close
+        end
+      end
     end
   end
 end
@@ -52,7 +59,7 @@ if __FILE__ == $0
   pp "ARGV:", ARGV
 end
 
-MetaImport.new(options[:directory]).import
+MetaImport.new(options[:directory],"meta","meta").import
 
 =begin
 if __FILE__ == $0
