@@ -20,13 +20,13 @@ require 'mash'
 #   property :url, String, :required => true, :length => 1024
 # end
 
-# STDOUT.sync = true;
-# exit_requested = false;
-# Kernel.trap( "INT" ) { exit_requested = true }
+STDOUT.sync = true;
+exit_requested = false;
+Kernel.trap( "INT" ) { exit_requested = true }
 
 options = {}
 
-optparse = OptionParser.new do |opts|
+optparse = OlptionParser.new do |opts|
   opts.banner = "Usage: Downloader.rbw [options] url1 url2 ..."
 
   opts.on( '-h', '--help', 'Display this screen' ) do

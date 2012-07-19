@@ -42,7 +42,7 @@ class MetaImport
           json = JSON.parse(data)
           pp target, json
           @mongo.upsert_by_meta json
-          # data
+          # puts "#{file} closed"
         rescue
           puts "Error! \"#{target}\" have broken json metadocument - ignoring"
         ensure
