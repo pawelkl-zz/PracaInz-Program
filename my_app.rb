@@ -10,10 +10,10 @@ class MyApp < Sinatra::Base
 	end
 
   get '/' do
-    'Hello World from MyApp in separate file!'
+    'Hello World!'
   end
 
-  # post '/'
+  # post ''/
 end
 
 MyApp.run!

@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # require 'rubygems'
+require 'drb'
 require 'curb'
 require 'yaml'
 # require 'json'
@@ -14,13 +15,11 @@ require 'pp'
 require 'mash'
 # require 'active_support'
 
-# class Download
-#   include DataMapper::Resource
-#   property :id, Serial
-#   property :url, String, :required => true, :length => 1024
-# end
-
+IP = "localhost"
+PORT = 9000
+CONNECTION = "druby://#{IP}:#{PORT}"
 ADS = false
+$SAFE = 1
 
 STDOUT.sync = true;
 exit_requested = false;
@@ -70,51 +69,21 @@ end
 optparse.parse!
 
 if __FILE__ == $0
-  puts "Options: #{options}"
-  puts "ARGV: #{ARGV}"
-    urls_to_download = [
-    'http://www.shapings.com/images/detailed/2/CVNESPT.jpg',
-    # 'http://www.opensubtitles.org/addons/avi/breakdance.avi', # 8e245d9679d31e12
-    # # 'http://www.opensubtitles.org/addons/avi/dummy.rar', # 61f7751fc2a72bfb
-    'http://static.skynetblogs.be/media/163667/1714742799.2.jpg',
-    # 'http://imgur.com/NMHpw.jpg',
-    # 'http://i.imgur.com/USdtc.jpg',
-    # 'http://i.imgur.com/Dexpm.jpg',
-    # 'http://www.shapings.com/images/detailed/2/CVNESPT.jpg',
-    # 'http://static3.blip.pl/user_generated/update_pictures/2639011.jpg',
-    # 'http://3.asset.soup.io/asset/3187/8131_3a06.jpeg',
-    # 'http://e.asset.soup.io/asset/3182/1470_9f47_500.jpeg',
-    'http://static3.blip.pl/user_generated/update_pictures/2638909.jpg'
-  ]
+  # puts "Options: #{options}"
+  # puts "ARGV: #{ARGV}"
   options[:destination] = 'c:/temp'
-  # ARGV= urls_to_download
-  options[:url] = urls_to_download
 end
 
-=begin GUI
-  class MinimalApp < App
-     def on_init
-      Frame.new(nil, -1, "Simple downloader",nil,Size.new(600,480)).show()
-     end
-  end
-
-  class MyFrame < Frame
-    def initialize()
-      super(nil, -1, 'My Frame Title')
-      @my_panel = Panel.new(self)
-      @my_label = StaticText.new(@mby_panel, -1, 'My Label Text', DEFAULT_POSITION, DEFAULT_SIZE, ALIGN_CENTER)
-      @my_textbox = TextCtrl.new(@my_panel, -1, 'Default Textbox Value')
-      @my_combo = ComboBox.new(@my_panel, -1, 'Default Combo Text',   DEFAULT_POSITION, DEFAULT_SIZE, ['Item 1', 'Item 2', 'Item 3'])
-      @my_button = Button.new(@my_panel, -1, 'My Button Text')
-    end
-  end
-
-  MinimalApp.new.main_loop
-
-  exit!
-=end
+# class BlankSlate
+#   # safe_methods = %w{__send__ __id__ inspect respond_to? to_s}
+#   safe_methods = %w{object_id __send__ __id__ inspect respond_to? to_s}
+#   (instance_methods - safe_methods).each do |method|
+#     undef_method method
+#   end
+# end
 
 class Downloader #< BlankSlate
+	include DRb::DRbUndumped
   attr_reader :target_dir
 
   def initialize(directory,db,collection)
@@ -127,11 +96,11 @@ class Downloader #< BlankSlate
     @c = Curl::Easy.new
     curl_setup
     begin
-      @mongo = AccessDb.new db, collection
-      @mongoenb = true
+    	@mongo = AccessDb.new db, collection
+    	@mongoenb = true
     rescue
-      @mongoenb = false
-      puts "WARNING: MongoDB server is down"
+    	@mongoenb = false
+    	puts "WARNING: MongoDB server is down"
     end
   end
 
@@ -185,8 +154,8 @@ class Downloader #< BlankSlate
     json
   end
 
-  def add_links(url_array,cred=nil,ref=nil,cookie=nil)
-    link_setup(cred,ref,cookie)
+  def add_links(url_array,options) #cred=nil,ref=nil,cookie=nil)
+    link_setup(options[:cred],options[:ref],options[:cookie])
     result = {}
     url_array.each do |single_url|
       @c.url=single_url
@@ -197,17 +166,25 @@ class Downloader #< BlankSlate
       json = parse_link_info single_url
       result[single_url] = json[:content_lenght]
       if @mongoenb == true then @mongo.upsert_by_meta json end
-      if
-        ADS == true
-      then
-        File.open(@save_location + :":meta.json".to_s,"w").write json
-      else
-        File.open(@save_location + ".meta","w").write json
-      end
+      if ADS == true
+    	then
+    		File.open(@save_location + :":meta.json".to_s,"w").write json
+    	else
+    		File.open(@save_location + @filename + ".meta","w").write json
+	  	end
     end
-    result
+    puts result
   end
 end
 
 manager = Downloader.new options[:destination],"meta","meta"
-manager.add_links options[:url].nil? ? ARGV : options[:url]
+# manager.add_links options[:url].nil? ? ARGV : options[:url]
+
+begin
+	DRb.start_service(CONNECTION, manager)
+	puts "INFO: Ready!"
+  # Drb.stop_service
+	DRb.thread.join
+rescue
+	puts "ERROR: Server already running on port #{PORT}"
+end

@@ -8,9 +8,14 @@ class AccessDb
   def initialize dbname, collection #, username, password
     @dbname = dbname
     @collection = collection
-    @conn = Mongo::Connection.new
-    @db   = @conn[dbname]
-    @coll = @db[collection]
+    # begin
+      @conn = Mongo::Connection.new
+      @db   = @conn[dbname]
+      @coll = @db[collection]
+    # rescue
+      # puts "ERROR: MongoDB server is down"
+      # @enb = false
+    # end
   end
 
   def upsert_by_id id, json
