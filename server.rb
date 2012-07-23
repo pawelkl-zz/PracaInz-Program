@@ -6,8 +6,10 @@ require 'yaml'
 # require 'json'
 require 'json/pure'
 require 'digest/md5'
-load 'D:\Dropbox\#code\PracaInz-Program\MovieHasher.rb' # load 'moviehasher.rb'
-load 'D:\Dropbox\#code\PracaInz-Program\AccessDb.rb'
+require_relative 'AccessDb'
+require_relative 'MovieHasher'
+# load 'D:\Dropbox\#code\PracaInz-Program\MovieHasher.rb'
+# load 'D:\Dropbox\#code\PracaInz-Program\AccessDb.rb'
 # require 'wx'
 # include Wx
 require 'optparse'
@@ -23,7 +25,10 @@ $SAFE = 1
 
 STDOUT.sync = true;
 exit_requested = false;
-Kernel.trap( "INT" ) { exit_requested = true }
+# Kernel.trap( "INT" ) { exit_requested = true }
+trap "INT" do
+  DRb.stop_service
+end
 
 options = {}
 
@@ -130,13 +135,11 @@ class Downloader #< BlankSlate
     # json = ActiveSupport::HashWithIndifferentAccess.new
 
     json[:link_requested] = url
-    if @c.last_effective_url != url
-      then json[:link_final] = @c.last_effective_url end
+    json[:link_final] = @c.last_effective_url if @c.last_effective_url != url
 
     json[:link_filename_requested] =  @filename
     @final_filename = @c.last_effective_url.split(/\?/).first.split(/\//).last
-    if @final_filename != @filename
-      then json[:link_filename_delivered] = @final_filename end
+    json[:link_filename_delivered] = @final_filename if @final_filename != @filename
 
     json[:link_filetime] = Time.at(@c.file_time).utc.to_s
 
@@ -146,8 +149,7 @@ class Downloader #< BlankSlate
     @hash = MovieHasher::compute_hash(@save_location)
     @hash = MovieHasher::compute_hash(@save_location)
 
-    if !@hash.nil?
-      then json[:hash_bigfile] = @hash end
+    json[:hash_bigfile] = @hash if !@hash.nil?
 
     json[:hash_md5] = Digest::MD5.hexdigest(File.read(@save_location))
     # JSON.generate json

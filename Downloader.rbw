@@ -5,8 +5,10 @@ require 'yaml'
 # require 'json'
 require 'json/pure'
 require 'digest/md5'
-load 'D:\Dropbox\#code\PracaInz-Program\MovieHasher.rb' # load 'moviehasher.rb'
-load 'D:\Dropbox\#code\PracaInz-Program\AccessDb.rb'
+require_relative 'AccessDb'
+require_relative 'MovieHasher'
+# load 'D:\Dropbox\#code\PracaInz-Program\MovieHasher.rb'
+# load 'D:\Dropbox\#code\PracaInz-Program\AccessDb.rb'
 # require 'wx'
 # include Wx
 require 'optparse'
@@ -161,13 +163,11 @@ class Downloader #< BlankSlate
     # json = ActiveSupport::HashWithIndifferentAccess.new
 
     json[:link_requested] = url
-    if @c.last_effective_url != url
-      then json[:link_final] = @c.last_effective_url end
+    json[:link_final] = @c.last_effective_url if @c.last_effective_url != url
 
     json[:link_filename_requested] =  @filename
     @final_filename = @c.last_effective_url.split(/\?/).first.split(/\//).last
-    if @final_filename != @filename
-      then json[:link_filename_delivered] = @final_filename end
+    json[:link_filename_delivered] = @final_filename if @final_filename != @filename
 
     json[:link_filetime] = Time.at(@c.file_time).utc.to_s
 
@@ -177,8 +177,7 @@ class Downloader #< BlankSlate
     @hash = MovieHasher::compute_hash(@save_location)
     @hash = MovieHasher::compute_hash(@save_location)
 
-    if !@hash.nil?
-      then json[:hash_bigfile] = @hash end
+    json[:hash_bigfile] = @hash if !@hash.nil?
 
     json[:hash_md5] = Digest::MD5.hexdigest(File.read(@save_location))
     # JSON.generate json
@@ -195,10 +194,9 @@ class Downloader #< BlankSlate
       @c.perform
       File.open(@save_location,"wb").write @c.body_str
       json = parse_link_info single_url
-      result[single_url] = json[:content_lenght]
-      if @mongoenb == true then @mongo.upsert_by_meta json end
-      if
-        ADS == true
+      result[single_url] = @filename
+      @mongo.upsert_by_meta json if @mongoenb == true
+      if ADS == true
       then
         File.open(@save_location + :":meta.json".to_s,"w").write json
       else

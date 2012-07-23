@@ -1,26 +1,37 @@
-# manager = Downloader.new options[:destination]
 #!/usr/bin/env ruby
-require 'rubygems'
+# require 'rubygems'
 require 'curb'
 require 'yaml'
-require 'json'
+# require 'json'
+require 'json/pure'
 require 'digest/md5'
-# load 'moviehasher.rb'
-load 'd:\dropbox\#code\praca-inz\src\moviehasher.rb'
-
-require 'wx'
-require 'rubygems'
-include Wx
-
+require_relative 'AccessDb'
+require_relative 'MovieHasher'
+# load 'D:\Dropbox\#code\PracaInz-Program\MovieHasher.rb'
+# load 'D:\Dropbox\#code\PracaInz-Program\AccessDb.rb'
+# require 'wx'
+# include Wx
 require 'optparse'
 require 'pp'
+require 'mash'
+# require 'active_support'
 
-STDOUT.sync = true; exit_requested = false; Kernel.trap( "INT" ) { exit_requested = true }
+# class Download
+#   include DataMapper::Resource
+#   property :id, Serial
+#   property :url, String, :required => true, :length => 1024
+# end
+
+ADS = false
+
+STDOUT.sync = true;
+exit_requested = false;
+Kernel.trap( "INT" ) { exit_requested = true }
 
 options = {}
 
-optparse = OptionParser.new do|opts|
-  opts.banner = "Usage: curb.rbw [options] url1 url2 ..."
+optparse = OptionParser.new do |opts|
+  opts.banner = "Usage: Downloader.rbw [options] url1 url2 ..."
 
   opts.on( '-h', '--help', 'Display this screen' ) do
     puts opts
@@ -28,39 +39,59 @@ optparse = OptionParser.new do|opts|
   end
 
   options[:url] = []
-    opts.on( '-u', '--url a,b,c', Array, "List of urls" ) do|u|
+    opts.on( '-u', '--url a,b,c', Array, "List of urls" ) do |u|
     options[:url] = u
   end
 
   options[:cookie] = ""
-    opts.on( '-c', '--cookie COOKIE', "" ) do|c|
+    opts.on( '-c', '--cookie COOKIE', "" ) do |c|
     options[:cookie] = c
   end
 
   options[:cred] = ""
-    opts.on( '-t', '--cred USER:PASSWORD', "" ) do|c|
+    opts.on( '-t', '--cred USER:PASSWORD', "" ) do |c|
     options[:cred] = c
   end
 
   options[:ref] = ""
-    opts.on( '-r', '--ref REF-LINK', "" ) do|c|
+    opts.on( '-r', '--ref REF-LINK', "" ) do |c|
     options[:ref] = c
   end
 
   options[:file] = ""
-    opts.on( '-f', '--file FILE', "" ) do|c|
+    opts.on( '-f', '--file FILE', "" ) do |c|
     options[:file] = c
   end
 
   options[:destination] = ""
-    opts.on( '-d', '--destination DESTINATION-FOLDER', "" ) do|c|
+    opts.on( '-d', '--destination DESTINATION-FOLDER', "" ) do |c|
     options[:destination] = c
   end
 end
 
 optparse.parse!
 
-if __FILE__ == $0; pp "Options:", options; pp "ARGV:", ARGV end
+if __FILE__ == $0
+  puts "Options: #{options}"
+  puts "ARGV: #{ARGV}"
+    urls_to_download = [
+    'http://www.shapings.com/images/detailed/2/CVNESPT.jpg',
+    # 'http://www.opensubtitles.org/addons/avi/breakdance.avi', # 8e245d9679d31e12
+    # # 'http://www.opensubtitles.org/addons/avi/dummy.rar', # 61f7751fc2a72bfb
+    'http://static.skynetblogs.be/media/163667/1714742799.2.jpg',
+    # 'http://imgur.com/NMHpw.jpg',
+    # 'http://i.imgur.com/USdtc.jpg',
+    # 'http://i.imgur.com/Dexpm.jpg',
+    # 'http://www.shapings.com/images/detailed/2/CVNESPT.jpg',
+    # 'http://static3.blip.pl/user_generated/update_pictures/2639011.jpg',
+    # 'http://3.asset.soup.io/asset/3187/8131_3a06.jpeg',
+    # 'http://e.asset.soup.io/asset/3182/1470_9f47_500.jpeg',
+    'http://static3.blip.pl/user_generated/update_pictures/2638909.jpg'
+  ]
+  options[:destination] = 'c:/temp'
+  # ARGV= urls_to_download
+  options[:url] = urls_to_download
+end
 
 =begin GUI
   class MinimalApp < App
@@ -73,7 +104,7 @@ if __FILE__ == $0; pp "Options:", options; pp "ARGV:", ARGV end
     def initialize()
       super(nil, -1, 'My Frame Title')
       @my_panel = Panel.new(self)
-      @my_label = StaticText.new(@my_panel, -1, 'My Label Text', DEFAULT_POSITION, DEFAULT_SIZE, ALIGN_CENTER)
+      @my_label = StaticText.new(@mby_panel, -1, 'My Label Text', DEFAULT_POSITION, DEFAULT_SIZE, ALIGN_CENTER)
       @my_textbox = TextCtrl.new(@my_panel, -1, 'Default Textbox Value')
       @my_combo = ComboBox.new(@my_panel, -1, 'Default Combo Text',   DEFAULT_POSITION, DEFAULT_SIZE, ['Item 1', 'Item 2', 'Item 3'])
       @my_button = Button.new(@my_panel, -1, 'My Button Text')
@@ -85,32 +116,25 @@ if __FILE__ == $0; pp "Options:", options; pp "ARGV:", ARGV end
   exit!
 =end
 
-urls_to_download = [
-  'http://www.shapings.com/images/detailed/2/CVNESPT.jpg',
-  # 'http://www.opensubtitles.org/addons/avi/breakdance.avi', # 8e245d9679d31e12
-  # # 'http://www.opensubtitles.org/addons/avi/dummy.rar', # 61f7751fc2a72bfb
-  'http://static.skynetblogs.be/media/163667/1714742799.2.jpg',
-  # 'http://imgur.com/NMHpw.jpg',
-  # 'http://i.imgur.com/USdtc.jpg',
-  # 'http://i.imgur.com/Dexpm.jpg',
-  # 'http://www.shapings.com/images/detailed/2/CVNESPT.jpg',
-  # 'http://static3.blip.pl/user_generated/update_pictures/2639011.jpg',
-  # 'http://3.asset.soup.io/asset/3187/8131_3a06.jpeg',
-  # 'http://e.asset.soup.io/asset/3182/1470_9f47_500.jpeg',
-  'http://static3.blip.pl/user_generated/update_pictures/2638909.jpg'
-]
+class Downloader #< BlankSlate
+  attr_reader :target_dir
 
-class Downloader
-  def initialize(directory)
+  def initialize(directory,db,collection)
     @PASS=nil
     @COOKIE=nil
     @filename=nil
     @full_file_location = nil
-    @myjson=nil
     @target_dir = directory
     File.exists? @target_dir # File.directory? @target_dir
     @c = Curl::Easy.new
     curl_setup
+    begin
+      @mongo = AccessDb.new db, collection
+      @mongoenb = true
+    rescue
+      @mongoenb = false
+      puts "WARNING: MongoDB server is down"
+    end
   end
 
   def curl_setup
@@ -127,96 +151,61 @@ class Downloader
     # @c.username = user
     # @c.password = pass
     @c.userpwd = cred
-    @c.autoreferer=true
-    @c.connect_timeout=15
+    @c.autoreferer = true
+    @c.connect_timeout = 15
     @c.cookiefile = cookie
     # @c.cookiejar = cookiejar
     # @c.cookies=COOKIES # NAME=CONTENTS;
   end
 
   def parse_link_info(url)
-    data, link, content, hash  =  {}, {}, {}, {}
+    json = {}
+    # json = ActiveSupport::HashWithIndifferentAccess.new
 
-    link["requested"] = url
-    if @c.last_effective_url != url
-      then link["final"] = @c.last_effective_url end
+    json[:link_requested] = url
+    json[:link_final] = @c.last_effective_url if @c.last_effective_url != url
 
-    link["requested-filename"] = @filename
+    json[:link_filename_requested] =  @filename
     @final_filename = @c.last_effective_url.split(/\?/).first.split(/\//).last
-    if @final_filename != @filename
-      then link["final-filename"] = @final_filename end
+    json[:link_filename_delivered] = @final_filename if @final_filename != @filename
 
-    data["Link"] = link
+    json[:link_filetime] = Time.at(@c.file_time).utc.to_s
 
-    content["lenght"] = @c.downloaded_content_length
-    content["type"] = @c.content_type
-    data["Content"] = content
-
-    data["filetime"] = Time.at(@c.file_time).utc.to_s
+    json[:content_lenght] = @c.downloaded_content_length
+    json[:content_type] = @c.content_type
 
     @hash = MovieHasher::compute_hash(@save_location)
     @hash = MovieHasher::compute_hash(@save_location)
 
-    if !@hash.nil?
-      then hash["bigfile"] = @hash end
+    json[:hash_bigfile] = @hash if !@hash.nil?
 
-    @md5 = Digest::MD5.hexdigest(File.read(@save_location))
-    hash["md5"] = @md5
-
-    data["Hashes"] = hash
-
-    @myjson = JSON.pretty_generate(data)
-    print @myjson
-  end
-
-  def add_link(single_url,cred=nil,ref=nil,cookie=nil)
-    link_setup(cred,ref,cookie)
-    @c.url=single_url
-    @filename = single_url.split(/\?/).first.split(/\//).last
-    puts @filename
-    @save_location = @target_dir + '\\' + (options[:file].nil? ? @filename : options[:file])
-    @c.perform
-    File.open(@save_location,"wb").write @c.body_str
-    # if File.file?(@save_location)
-      # then parse_additional_info @save_location end
-    # puts "#{@save_location} #{@hash}"
-    parse_link_info single_url
-    File.open(@save_location + ":meta.json","w").write @myjson
+    json[:hash_md5] = Digest::MD5.hexdigest(File.read(@save_location))
+    # JSON.generate json
+    json
   end
 
   def add_links(url_array,cred=nil,ref=nil,cookie=nil)
     link_setup(cred,ref,cookie)
+    result = {}
     url_array.each do |single_url|
       @c.url=single_url
       @filename = single_url.split(/\?/).first.split(/\//).last
       @save_location = @target_dir + '\\' + @filename
-      puts @save_location
       @c.perform
       File.open(@save_location,"wb").write @c.body_str
-      # if File.file?(@save_location)
-        # then parse_additional_info @save_location end
-      # puts "#{@save_location} #{@hash}"
-      parse_link_info single_url
-      File.open(@save_location + ":meta.json","w").write @myjson
+      json = parse_link_info single_url
+      result[single_url] = @filename
+      @mongo.upsert_by_meta json if @mongoenb == true
+      if ADS == true
+      then
+        File.open(@save_location + :":meta.json".to_s,"w").write json
+      else
+        File.open(@save_location + ".meta","w").write json
+      end
     end
+    result
   end
 end
 
-manager = Downloader.new options[:destination]
-# manager.add_links(urls_to_download)
-
-if ARGV.nil? 
-  manager.add_link(options[:url])
-else
-  manager.add_links(ARGV)
-end
-
-=begin
-  open('file.txt:stream1', 'w') do |f|
-       f.puts('Your Text Here')
-  end
-
-  stream_text = open('file.txt:stream1').read
-=end
-
-sleep(3)
+manager = Downloader.new options[:destination],"meta","meta"
+manager.add_links options[:url].nil? ? ARGV : options[:url]
